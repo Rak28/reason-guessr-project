@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reason-Guessr | CS 766 Computer Vision</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Georgia, 'Times New Roman', serif; font-size: 16px; line-height: 1.7; color: #222; background: #fff; }
+
+/* HEADER */
+.header-bar {
+  background: #c5050c;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 2rem; height: 54px;
+}
+.header-bar .logo {
+  display: flex; align-items: center; gap: 0.75rem;
+  color: #fff; font-size: 1rem; font-weight: bold; text-decoration: none;
+  font-family: Arial, sans-serif;
+}
+.header-bar .logo img { width: 32px; height: 32px; }
+
+/* TITLE BLOCK */
+.title-block {
+  max-width: 960px; margin: 0 auto; padding: 3rem 2rem 2rem;
+  text-align: center;
+}
+.course-tag {
+  font-family: Arial, sans-serif; font-size: 0.8rem;
+  color: #666; margin-bottom: 1rem;
+}
+.title-block h1 {
+  font-size: clamp(2rem, 5vw, 2.8rem); font-weight: bold;
+  line-height: 1.15; margin-bottom: 0.75rem; color: #000;
+}
+.title-block .subtitle {
+  font-size: 1.15rem; color: #444; margin: 1rem auto;
+  max-width: 720px; line-height: 1.6;
+}
+.authors {
+  font-family: Arial, sans-serif; font-size: 0.9rem;
+  color: #666; margin: 1.5rem 0;
+}
+.authors span { display: inline-block; margin: 0 0.6rem; }
+
+/* TOC */
+.toc {
+  max-width: 960px; margin: 2rem auto 0; padding: 0 2rem 2.5rem;
+  border-bottom: 2px solid #c5050c;
+}
+.toc ol { list-style-position: inside; }
+.toc li { padding: 0.35rem 0; }
+.toc a { color: #1a5490; text-decoration: none; font-size: 1.05rem; }
+.toc a:hover { text-decoration: underline; }
+
+/* MAIN */
+.container { max-width: 960px; margin: 0 auto; padding: 0 2rem; }
+section { padding: 2.5rem 0; border-bottom: 1px solid #ddd; }
+section:last-of-type { border-bottom: none; }
+
+.section-number {
+  display: inline-block; font-family: Arial, sans-serif;
+  font-size: 1.8rem; font-weight: bold; color: #c5050c;
+  margin-right: 0.75rem; vertical-align: baseline;
+}
+h2 { font-size: 1.8rem; color: #000; margin-bottom: 1.25rem; display: inline; }
+h3 { font-size: 1.25rem; color: #000; margin: 1.75rem 0 0.75rem; }
+h4 { font-size: 1.05rem; color: #000; margin: 1.25rem 0 0.5rem; font-weight: 600; }
+p { margin-bottom: 1rem; }
+p:last-child { margin-bottom: 0; }
+
+/* FIGURE */
+.figure {
+  margin: 1.5rem 0;
+  text-align: center;
+}
+.figure img {
+  max-width: 100%;
+  height: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+.figure-caption {
+  font-family: Arial, sans-serif;
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: 0.5rem;
+  font-style: italic;
+}
+
+/* COMPARISON BOX */
+.compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin: 1.5rem 0;
+}
+.compare-card {
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  padding: 1.5rem;
+  background: #f8f8f8;
+}
+.compare-card.bad { border-color: #d9534f; background: #fff5f5; }
+.compare-card.good { border-color: #5cb85c; background: #f5fff5; }
+.compare-title {
+  font-family: Arial, sans-serif;
+  font-size: 0.9rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.compare-title.bad { color: #d9534f; }
+.compare-title.good { color: #5cb85c; }
+.compare-card ul { list-style: none; padding: 0; margin-top: 0.75rem; }
+.compare-card li {
+  font-size: 0.9rem;
+  padding: 0.3rem 0;
+  padding-left: 1.6rem;
+  position: relative;
+  line-height: 1.5;
+}
+.compare-card.bad li::before {
+  content: "✗";
+  position: absolute;
+  left: 0;
+  color: #d9534f;
+  font-weight: bold;
+}
+.compare-card.good li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: #5cb85c;
+  font-weight: bold;
+}
+
+/* TABLE */
+table {
+  width: 100%; border-collapse: collapse; margin: 1.5rem 0;
+  font-family: Arial, sans-serif; font-size: 0.9rem;
+}
+th {
+  background: #f0f0f0; text-align: left; padding: 0.75rem 1rem;
+  font-weight: bold; border-bottom: 2px solid #c5050c;
+}
+td { padding: 0.75rem 1rem; border-bottom: 1px solid #ddd; vertical-align: top; }
+tr:last-child td { border-bottom: none; }
+tr.highlight { background: #fff8e8; }
+.metric-val { font-weight: bold; font-family: 'Courier New', monospace; }
+.good-val { color: #2d7a2d; }
+.bad-val { color: #c0392b; }
+
+/* CUE BARS */
+.cue-bars { margin: 1.5rem 0; }
+.cue-row {
+  display: flex; align-items: center; gap: 1rem; margin-bottom: 0.75rem;
+}
+.cue-name {
+  font-family: Arial, sans-serif; font-size: 0.88rem;
+  width: 130px; flex-shrink: 0; color: #333;
+}
+.cue-track {
+  flex: 1; height: 14px; background: #e8e8e8;
+  border-radius: 7px; overflow: hidden;
+}
+.cue-fill { height: 100%; border-radius: 7px; background: #1a5490; }
+.cue-val {
+  font-family: Arial, sans-serif; font-size: 0.88rem;
+  font-weight: bold; width: 50px; text-align: right;
+}
+
+@media (max-width: 640px) {
+  .header-bar { flex-direction: column; height: auto; padding: 0.75rem 1rem; }
+  .compare-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header-bar">
+  <a href="#" class="logo">
+    <img src="uw-crest-color-web-digital.svg" alt="UW Logo">
+    <span>Reason-Guessr</span>
+  </a>
+</div>
+
+<!-- TITLE -->
+<div class="title-block">
+  <div class="course-tag">CS 766 · Computer Vision · University of Wisconsin-Madison · Spring 2026</div>
+  <h1>Reason-Guessr: Bridging the Gap Between Pixel Classification and Geographic Reasoning</h1>
+  <p class="subtitle">
+    A geolocation system that extracts interpretable geographic cues — license plates, climate, vegetation, architecture — and fuses them with CLIP visual features to predict where a street-level image was taken in Croatia.
+  </p>
+  <div class="authors">
+    <span>Khyathi Vagolu</span> · 
+    <span>Rakshith Sriraman Krishnaraj</span> · 
+    <span>Satya Bhargav Maddipati</span>
+    <br>
+    <span style="font-size:0.85rem;color:#999">{vagolu, sriramankris, sbmaddipati}@wisc.edu</span>
+  </div>
+</div>
+
+<!-- TOC -->
+<div class="toc">
+  <ol>
+    <li><a href="#home">Home</a></li>
+    <li><a href="#related">Related Work</a></li>
+    <li><a href="#dataset">Dataset</a></li>
+    <li><a href="#approach">Approach</a></li>
+    <li><a href="#challenges">Challenges</a></li>
+    <li><a href="#results">Results</a></li>
+    <li><a href="#references">References</a></li>
+    <li><a href="#links">Links</a></li>
+  </ol>
+</div>
+
+<!-- MAIN -->
+<div class="container">
+
+<!-- 1. HOME -->
+<section id="home">
+  <h2><span class="section-number">1.</span> Home</h2>
+  
+  <h3>The Problem</h3>
+  <p>The core challenge is <strong>Image-Based Geolocation (IBG)</strong>: determining the exact geographic coordinates (latitude/longitude) of a location solely from a single image. This problem is popularized by the game <strong>GeoGuessr</strong>, where players are dropped into a random Google Street View location and must deduce their whereabouts.</p>
+  
+  <p>Unlike standard object recognition, IBG requires multi-level understanding of visual context:</p>
+  <ul style="margin-left:2rem;margin-bottom:1rem">
+    <li><strong>Global Cues:</strong> Climate, vegetation (flora), and architectural styles</li>
+    <li><strong>Local Cues:</strong> Road markings, license plate colors, utility pole designs, and language on signs</li>
+    <li><strong>Knowledge Retrieval:</strong> Associating these cues with a global mental map</li>
+  </ul>
+  
+  <h3>The Black-Box Problem</h3>
+  <p>Traditional models treat this as a classification problem — dividing the world into thousands of grid cells and training a CNN to predict the right cell. While effective at coarse localization, this is fundamentally a black box. When the model is wrong, there's no explanation. No reasoning chain. No way to improve without more data.</p>
+  
+  <div class="figure">
+    <img src="images/image7.png" alt="Black-box problem">
+    <div class="figure-caption">Figure 1: The black-box problem — CNN outputs grid cell with no explanation</div>
+  </div>
+  
+  <table style="margin: 2rem 0;">
+    <thead>
+      <tr>
+        <th style="width: 50%;">Standard CNN Approach</th>
+        <th style="width: 50%;">How Humans Solve It</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="vertical-align: top;">
+          <p style="margin-bottom: 0.75rem; font-style: italic;">Black-box classification into arbitrary grids</p>
+          <ul style="margin-left: 1.25rem; line-height: 1.8;">
+            <li>No explanation for predictions</li>
+            <li>Memorizes textures, not geography</li>
+            <li>Brittle to new regions</li>
+            <li>Requires massive labeled datasets</li>
+            <li>99% train / 33% test accuracy gap</li>
+          </ul>
+        </td>
+        <td style="vertical-align: top;">
+          <p style="margin-bottom: 0.75rem; font-style: italic;">Explicit reasoning over visual cues</p>
+          <ul style="margin-left: 1.25rem; line-height: 1.8;">
+            <li>Notice language on street signs</li>
+            <li>Identify architectural style</li>
+            <li>Recognize vegetation patterns</li>
+            <li>Check license plate colors</li>
+            <li>Map cues to world knowledge</li>
+          </ul>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  
+  <h3>Our Solution: Reason-Guessr</h3>
+  <p>We ask: can we teach a model to reason the same way humans do? This project builds <strong>Reason-Guessr</strong>: a system that bridges pixel classification and geographic reasoning by extracting interpretable cues zero-shot using CLIP's image-text alignment, then fusing them with visual embeddings to predict latitude/longitude coordinates for street-level imagery in Croatia.</p>
+  
+  <h3>Why This Matters</h3>
+  <p>Image-based geolocation has significant real-world applications:</p>
+  <ul style="margin-left:2rem;margin-bottom:1rem">
+    <li><strong>Media Verification:</strong> Fact-checking the origin of photos and videos to combat misinformation</li>
+    <li><strong>Disaster Response:</strong> Localizing social media images during emergencies to support rescue coordination</li>
+    <li><strong>Cybersecurity & Privacy:</strong> Understanding how AI can infer sensitive locations from personal photos</li>
+    <li><strong>Autonomous Systems:</strong> Visual localization for drones, autonomous vehicles, and embodied AI agents</li>
+  </ul>
+  
+  <p>Beyond applications, IBG represents a shift from pure pixel classification toward structured visual reasoning. Our approach demonstrates that explicit geographic reasoning — extracting cues like climate zones, license plate colors, and architectural styles — can be integrated into end-to-end prediction pipelines, improving both accuracy and interpretability.</p>
+</section>
+
+<!-- 2. RELATED WORK -->
+<section id="related">
+  <h2><span class="section-number">2.</span> Related Work</h2>
+  
+  <h3>Early Approaches: Grid Classification</h3>
+  <p><strong>PlaNet</strong> [Weyand et al., 2016] was the first to tackle this at scale, dividing Earth into thousands of S2 grid cells and training a CNN to classify images. It achieved coarse localization but struggled with fine-grained precision. <strong>IM2GPS</strong> [Vo & Hays, 2017] improved with better CNN backbones (ResNet) and larger datasets, but maintained the same black-box classification paradigm.</p>
+  
+  <h3>Vision Transformers</h3>
+  <p><strong>ViT</strong> [Dosovitskiy et al., 2021] brought self-attention to computer vision, enabling better global context modeling. When applied to geolocation, ViTs improved accuracy but still functioned as improved classifiers rather than reasoning systems — no interpretable intermediate outputs.</p>
+  
+  <h3>Vision-Language Models</h3>
+  <p><strong>CLIP</strong> [Radford et al., 2021] changed the landscape by learning joint image-text embeddings on 400M image-caption pairs from the web. Because CLIP was trained on natural language descriptions of scenes, it internalized rich geographic priors — recognizing architectural styles, vegetation types, and cultural markers without explicit geographic supervision.</p>
+  
+  <h3>Recent CLIP-Based Work</h3>
+  <p><strong>GeorAIn</strong> [Anwar, 2025] showed that a frozen CLIP ViT-B/16 with just a two-layer MLP head achieves 489km mean error and 103km median error across 23 cities, trained on only 113K images — demonstrating that CLIP's pretrained features carry substantial geographic information without massive task-specific datasets.</p>
+  
+  <p><strong>PIGEON</strong> [Haas et al., 2024] uses a coarse-to-fine pipeline with contrastive pretraining on millions of geotagged images, then refines predictions with a retrieval module. It achieves state-of-the-art results but requires massive compute and data — training on 4.7M images across 100 epochs.</p>
+  
+  <p>The <strong>OpenStreetView-5M</strong> benchmark [Astruc et al., 2024] confirmed that classification-augmented methods consistently outperform pure coordinate regression, which motivated our hybrid approach combining classification and explicit cue extraction.</p>
+  
+  <h3>Our Contribution</h3>
+  <p>While prior work either (1) treats geolocation as pure classification with no interpretability, or (2) uses VLMs to extract cues but doesn't integrate them into predictions, we bridge that gap: <strong>zero-shot cue extraction fused end-to-end with CLIP visual embeddings for direct coordinate regression</strong>, combining the semantic reasoning of VLMs with the prediction accuracy of learned models.</p>
+</section>
+
+<!-- 3. DATASET -->
+<section id="dataset">
+  <h2><span class="section-number">3.</span> Dataset</h2>
+  
+  <h3>Google Street View Collection</h3>
+  <p>We built a Croatia-focused dataset using the <strong>Google Street View Static API</strong>. We sampled 8,000 random coordinates within Croatia's bounding box (latitude 42.4–46.5°N, longitude 13.5–19.4°E), verified Street View coverage via the metadata API, and downloaded four cardinal-direction images (0°, 90°, 180°, 270°) per valid location at 640×640 resolution.</p>
+  
+  <p>This yielded <strong>32,000 images</strong> across 8,000 unique locations, partitioned into <strong>31 geographic grid cells at 0.7° spacing</strong>. The dataset was split 80/10/10 into train (6,400 locations), validation (800), and test (800).</p>
+  
+  <div class="figure">
+    <img src="images/image14.png" alt="Croatia grid map">
+    <div class="figure-caption">Figure 2: Croatia partitioned into 31 geographic grid cells (0.7° spacing)</div>
+  </div>
+  
+  <div class="figure">
+    <img src="images/image16.png" alt="Four-direction Street View">
+    <div class="figure-caption">Figure 3: Four cardinal views (0°, 90°, 180°, 270°) from a single Croatia location</div>
+  </div>
+  
+  <h3>Why Four Views?</h3>
+  <p>Human GeoGuessr players don't make judgments from a single fixed viewpoint — they "look around" to gather contextual clues. The four cardinal views replicate this: one direction might show a license plate, another might capture a road sign with text, another might reveal architectural details. Aggregating these views via mean-pooling gives the model a richer spatial understanding of each location.</p>
+  
+  <h3>Dataset Statistics</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Metric</th>
+        <th>Street View Dataset</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Total Locations</td>
+        <td class="metric-val">8,000</td>
+      </tr>
+      <tr>
+        <td>Total Images</td>
+        <td class="metric-val">32,000 (4 per location)</td>
+      </tr>
+      <tr>
+        <td>Geographic Classes</td>
+        <td class="metric-val">31 (0.7° grid)</td>
+      </tr>
+      <tr>
+        <td>Train / Val / Test</td>
+        <td class="metric-val">6,400 / 800 / 800</td>
+      </tr>
+      <tr>
+        <td>Geographic Distribution</td>
+        <td class="metric-val good-val">Uniform across Croatia</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- 4. APPROACH -->
+<section id="approach">
+  <h2><span class="section-number">4.</span> Approach</h2>
+  <p>Our methodology follows a three-phase progression from traditional CNN classification to zero-shot reasoning.</p>
+  
+  <h3>Phase 1: CNN Baseline (ResNeXt-101)</h3>
+  <p>We adapted the <a href="https://github.com/ciglenecki/ml-competition-cv-geoguessr" target="_blank">ciglenecki/ml-competition-cv-geoguessr</a> pipeline as our baseline. Croatia is partitioned into 31 geographic grid cells at 0.7° spacing. A <strong>ResNeXt-101 (32×8d)</strong> CNN pretrained on ImageNet classifies street-level images into these cells.</p>
+  
+  <p><strong>Architecture:</strong> Each location provides four cardinal-direction images (N/E/S/W). Each image is passed through the ResNeXt-101 backbone to extract a 2048-d feature vector. The four vectors are concatenated (4 × 2048 = 8192-d), then passed through a fully-connected classifier to predict one of 31 grid classes. The predicted class centroid becomes the final lat/lng estimate.</p>
+  
+  <p><strong>Training:</strong> Cross-entropy loss, Adam optimizer (lr=1e-4), OneCycleLR scheduler, 15 epochs, batch size 16. Backbone frozen for first 3 epochs, then unfrozen for fine-tuning.</p>
+  
+  <h3>Phase 2: CLIP Classification</h3>
+  <p>We replace the ResNeXt backbone with a <strong>frozen CLIP ViT-B/32</strong> encoder. Because CLIP was trained on 400M image-text pairs scraped from the internet, it has internalized rich geographic priors — associating visual patterns with semantic concepts like "Mediterranean architecture" or "Alpine vegetation" — without any explicit geolocation supervision.</p>
+  
+  <p><strong>Architecture:</strong> Same 4-view setup. Each image (640×640) is resized to 224×224 and passed through the frozen CLIP ViT-B/32 visual encoder to extract a 512-d [CLS] token embedding. The four embeddings are concatenated (4 × 512 = 2048-d), then passed through a <strong>lightweight linear classifier</strong> (95K parameters) to predict one of 31 grid classes.</p>
+  
+  <p><strong>Why frozen?</strong> Fine-tuning CLIP's 151M parameter backbone on 6,400 training examples would cause severe overfitting. By freezing the backbone and training only the linear head, we leverage CLIP's semantic knowledge while avoiding memorization. This acts as a powerful regularizer.</p>
+  
+  <h3>Phase 3: Reason-Guessr (Zero-Shot Cue Fusion)</h3>
+  <p>The full system extracts interpretable geographic cues <em>zero-shot</em> using CLIP's image-text alignment, then fuses them with the visual embedding to regress lat/lng directly — bypassing grid discretization entirely.</p>
+  
+  <p><strong>Step 1: Zero-Shot Cue Extraction</strong></p>
+  <p>We define 6 geographic categories that mimic human reasoning:</p>
+  <ul style="margin-left:2rem;margin-bottom:1rem">
+    <li><strong>Climate (6 prompts):</strong> "Mediterranean climate", "Continental climate", "Alpine climate", "Coastal Adriatic climate", "Pannonian Plain climate", "Sub-Mediterranean climate"</li>
+    <li><strong>License Plates (9 prompts):</strong> "EU yellow license plates", "EU white license plates", "Croatian white plates", "Balkan-style plates", etc.</li>
+    <li><strong>Vegetation (10 prompts):</strong> "Pine forest", "Olive groves", "Mediterranean scrubland", "Deciduous forest", "Cypress trees", "Agricultural fields", etc.</li>
+    <li><strong>Architecture (10 prompts):</strong> "Austro-Hungarian architecture", "Mediterranean coastal houses", "Socialist-era apartment blocks", "Rural Balkan houses", "Venetian-influenced buildings", etc.</li>
+    <li><strong>Road Infrastructure (8 prompts):</strong> "EU-style highway", "Balkan rural road", "Coastal scenic route", "Mountain pass", "Paved village road", etc.</li>
+    <li><strong>Language (6 prompts):</strong> "Croatian Latin script signs", "Italian language signs", "German language signs", "Bilingual Croatian-Italian signs", "Cyrillic script", "English tourist signs"</li>
+  </ul>
+  
+  <p>For each image, we:</p>
+  <ol style="margin-left:2rem;margin-bottom:1rem">
+    <li>Encode all 49 text prompts with CLIP's text encoder → 49 × 512-d text embeddings</li>
+    <li>Compute cosine similarity between the image embedding (512-d) and each text embedding</li>
+    <li>For each category, select the prompt with highest similarity → 6 cues</li>
+    <li>One-hot encode the selected cues → 49-d sparse vector</li>
+  </ol>
+  
+  <div class="figure">
+    <img src="images/image15.png" alt="Cue extraction example">
+    <div class="figure-caption">Figure 4: Zero-shot cue extraction on coastal Croatia location with confidence scores</div>
+  </div>
+  
+  <p><strong>Example:</strong> For a coastal Dalmatian location, CLIP might extract:</p>
+  <ul style="margin-left:2rem;margin-bottom:1rem;font-size:0.95rem">
+    <li>Climate: "Coastal Adriatic climate" (confidence: 0.61)</li>
+    <li>Plates: "EU white license plates" (confidence: 0.36)</li>
+    <li>Vegetation: "Mediterranean scrubland" (confidence: 0.49)</li>
+    <li>Architecture: "Mediterranean coastal houses" (confidence: 0.51)</li>
+    <li>Road Infra: "Coastal scenic route" (confidence: 0.28)</li>
+    <li>Language: "Croatian Latin script signs" (confidence: 0.09)</li>
+  </ul>
+  
+  <p><strong>Step 2: Fusion MLP</strong></p>
+  <p>We concatenate the 49-d cue vector with the mean CLIP visual embedding (512-d averaged across 4 views) to form a 561-d feature vector. This is passed through a 2-layer MLP (561 → 256 → 2) to regress directly to (lat, lng) coordinates with MSE loss.</p>
+  
+  <div class="figure">
+    <img src="images/image13.png" alt="MLP architecture">
+    <div class="figure-caption">Figure 5: 2-layer fusion MLP architecture</div>
+  </div>
+  
+  <p><strong>Why this works:</strong> The visual embedding captures low-level spatial patterns, while the cue vector provides high-level semantic structure. By fusing both, the MLP learns to map "Mediterranean climate + coastal architecture + EU plates" to specific coordinate ranges, mimicking human reasoning.</p>
+</section>
+
+<!-- 5. CHALLENGES -->
+<section id="challenges">
+  <h2><span class="section-number">5.</span> Challenges</h2>
+  
+  <h3>Infrastructure & Training Setup</h3>
+  <p><strong>Hardware:</strong> Google Colab with NVIDIA A100 GPU (40GB VRAM). All training runs completed in <6 hours.</p>
+  <p><strong>Frameworks:</strong> PyTorch 2.0, PyTorch Lightning 2.1, TorchVision 0.15, Transformers 4.36 (for CLIP), OpenCV 4.8.</p>
+  <p><strong>Hyperparameters:</strong> Batch size 16, learning rate 1e-4 (frozen backbone) / 1e-5 (fine-tuning), weight decay 1e-3, OneCycleLR → ReduceLROnPlateau scheduler, 15 epochs total (CNN baseline) / 10 epochs (CLIP).</p>
+  
+  <h3>Technical Bugs Fixed</h3>
+  <p>The baseline repository (ciglenecki/ml-competition-cv-geoguessr) was built in 2021 and required extensive debugging to run on modern environments:</p>
+  
+  <p><strong>1. Broken symlinks:</strong> The preprocessing script created symlinks from <code>/content/dataset/train/&lt;uuid&gt;/</code> to <code>/content/drive/MyDrive/.../images/&lt;uuid&gt;/</code> instead of copying files. This caused <code>FileNotFoundError</code> mid-epoch when Colab's Drive mount timed out. <strong>Fix:</strong> Added <code>--copy-images</code> flag to physically copy all files to local disk before training.</p>
+  
+  <p><strong>2. Incomplete UUIDs:</strong> 104 out of 8,000 UUID folders were missing one of the 4 directional images (e.g., had <code>0.jpg, 90.jpg, 180.jpg</code> but not <code>270.jpg</code>). These caused crashes during batch loading. <strong>Fix:</strong> Filtered CSV to exclude incomplete locations before generating train/val/test splits.</p>
+  
+  <p><strong>3. CSV/split mismatch:</strong> The rich static CSV (<code>data_rich_static__spacing_0.5_classes_55.csv</code>) referenced 8,000 UUIDs, but only 3,715 actually existed on disk after preprocessing. Training silently used the intersection, reducing effective dataset size. <strong>Fix:</strong> Manual CSV regeneration to match actual on-disk UUIDs.</p>
+  
+  <p><strong>4. Code compatibility bugs:</strong></p>
+  <ul style="margin-left:2rem;margin-bottom:1rem">
+    <li><code>IndentationError</code> in <code>train.py</code> line 203 — missing indent after conditional</li>
+    <li><code>KeyError: 'has_image'</code> in <code>preprocess_csv_create_rich_static.py</code> — DataFrame column didn't exist in newer pandas</li>
+    <li><code>TypeError</code> from <code>OneCycleLR(verbose=True)</code> — parameter deprecated in PyTorch 2.0</li>
+    <li><code>DeprecationWarning</code> for <code>pretrained=True</code> → migrated to <code>weights=ResNeXt101_32X8D_Weights.DEFAULT</code></li>
+  </ul>
+  
+  <p><strong>5. Colab-specific constraints:</strong> <code>num_workers=0</code> required to prevent DataLoader multiprocessing deadlocks on Colab's sandboxed environment. Dataset workflow: zip on Google Drive → copy single .zip to <code>/content/</code> → extract locally to leverage SSD speed (10× faster than Drive symlinks).</p>
+  
+  <h3>Hyperparameter Tuning Journey</h3>
+  <p>Finding the right training configuration required multiple iterations:</p>
+  
+  <table>
+    <thead>
+      <tr>
+        <th>Configuration</th>
+        <th>Learning Rate</th>
+        <th>Batch Size</th>
+        <th>Weight Decay</th>
+        <th>Test Accuracy</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Initial (broken pipeline)</td>
+        <td class="metric-val">2e-5</td>
+        <td class="metric-val">2</td>
+        <td class="metric-val">0</td>
+        <td class="metric-val bad-val">0.85%</td>
+        <td>Worse than random (1/31 = 3.2%)</td>
+      </tr>
+      <tr>
+        <td>Fixed preprocessing</td>
+        <td class="metric-val">1e-4</td>
+        <td class="metric-val">16</td>
+        <td class="metric-val">0</td>
+        <td class="metric-val">10.9%</td>
+        <td>First working run</td>
+      </tr>
+      <tr>
+        <td>Added regularization</td>
+        <td class="metric-val">1e-4</td>
+        <td class="metric-val">16</td>
+        <td class="metric-val">1e-3</td>
+        <td class="metric-val">17.2%</td>
+        <td>Weight decay helped</td>
+      </tr>
+      <tr class="highlight">
+        <td>Larger dataset (5,042 imgs)</td>
+        <td class="metric-val">1e-4</td>
+        <td class="metric-val">16</td>
+        <td class="metric-val">1e-3</td>
+        <td class="metric-val good-val">21.4%</td>
+        <td>Data > hyperparameters</td>
+      </tr>
+      <tr class="highlight">
+        <td>Final (8,000 locations)</td>
+        <td class="metric-val">1e-4</td>
+        <td class="metric-val">16</td>
+        <td class="metric-val">1e-3</td>
+        <td class="metric-val good-val">33.2%</td>
+        <td>Best CNN result</td>
+      </tr>
+    </tbody>
+  </table>
+  
+  <p><strong>Key insight:</strong> Doubling the dataset size from 2,496 to 5,042 images nearly doubled test accuracy (10.9% → 21.4%). Going from 5,042 to 8,000 increased it further to 33.2%. <em>More data consistently outperforms hyperparameter tuning.</em></p>
+</section>
+
+<!-- 6. RESULTS -->
+<section id="results">
+  <h2><span class="section-number">6.</span> Results</h2>
+  
+  <h3>Model Comparison</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Model</th>
+        <th>Train Acc</th>
+        <th>Val Acc</th>
+        <th>Test Acc</th>
+        <th>Median Haversine (km)</th>
+        <th>Overfitting Gap</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>ResNeXt-101 CNN</strong></td>
+        <td class="metric-val">99.4%</td>
+        <td class="metric-val">19.6%</td>
+        <td class="metric-val">33.2%</td>
+        <td class="metric-val">82.82</td>
+        <td class="metric-val bad-val">79.8pp</td>
+      </tr>
+      <tr class="highlight">
+        <td><strong>CLIP ViT-B/32 (frozen)</strong></td>
+        <td class="metric-val">59.0%</td>
+        <td class="metric-val">35.7%</td>
+        <td class="metric-val good-val">37.5%</td>
+        <td class="metric-val">91.1</td>
+        <td class="metric-val good-val">21.5pp</td>
+      </tr>
+      <tr>
+        <td><strong>Reason-Guessr (Cue Fusion)</strong></td>
+        <td class="metric-val">—</td>
+        <td class="metric-val">—</td>
+        <td class="metric-val">—</td>
+        <td class="metric-val good-val">88.9</td>
+        <td class="metric-val">—</td>
+      </tr>
+    </tbody>
+  </table>
+  
+  <h3>Zero-Shot Cue Accuracy</h3>
+  <p>Evaluated on all 8,000 Croatia locations with <strong>no training</strong> — pure CLIP image-text alignment:</p>
+  <div class="cue-bars">
+    <div class="cue-row">
+      <div class="cue-name">Climate</div>
+      <div class="cue-track"><div class="cue-fill" style="width:96.8%"></div></div>
+      <div class="cue-val">96.8%</div>
+    </div>
+    <div class="cue-row">
+      <div class="cue-name">License Plates</div>
+      <div class="cue-track"><div class="cue-fill" style="width:91.8%"></div></div>
+      <div class="cue-val">91.8%</div>
+    </div>
+    <div class="cue-row">
+      <div class="cue-name">Vegetation</div>
+      <div class="cue-track"><div class="cue-fill" style="width:85.0%"></div></div>
+      <div class="cue-val">85.0%</div>
+    </div>
+    <div class="cue-row">
+      <div class="cue-name">Architecture</div>
+      <div class="cue-track"><div class="cue-fill" style="width:78.0%"></div></div>
+      <div class="cue-val">78.0%</div>
+    </div>
+    <div class="cue-row">
+      <div class="cue-name">Road Infra</div>
+      <div class="cue-track"><div class="cue-fill" style="width:18.9%"></div></div>
+      <div class="cue-val">18.9%</div>
+    </div>
+    <div class="cue-row">
+      <div class="cue-name">Language (OCR)</div>
+      <div class="cue-track"><div class="cue-fill" style="width:2.3%"></div></div>
+      <div class="cue-val">2.3%</div>
+    </div>
+  </div>
+  
+  <p><strong>Key finding:</strong> Global scene-level cues transfer brilliantly (Climate 96.8%, Plates 91.8%), while fine-grained cues struggle (Language 2.3%, Road Infra 18.9%). This validates our hypothesis that CLIP excels at holistic texture recognition but fails at detailed symbol detection. 84.8% of locations have all 4 reliable cues (Climate, Plates, Vegetation, Architecture) correct.</p>
+  
+  <h3>Discussion</h3>
+  
+  <h4>Why CNNs Overfit</h4>
+  <p>The ResNeXt-101 baseline achieved 99.4% train accuracy but only 33.2% test accuracy — a <strong>79.8 percentage point overfitting gap</strong>. With 87M parameters and only ~6,400 training examples, the model doesn't learn geographic features — it memorizes training images.</p>
+  
+  <p>Evidence: When we inspected misclassified test images, the CNN often predicted the <em>training location most visually similar to the test image</em>, rather than the geographically correct grid cell. It learned "this house texture belongs to cell #12" instead of "cell #12 covers the Istrian peninsula."</p>
+  
+  <p>CLIP's frozen backbone reduces this gap to 21.5pp by leveraging 400M pretrained images. The frozen encoder acts as a powerful regularizer — it <em>cannot</em> memorize training examples, so it's forced to rely on semantic patterns.</p>
+  
+  <h4>Why Language Cue Failed</h4>
+  <p>CLIP achieved only 2.3% accuracy on language/OCR cues — the worst by far. 96% of locations were predicted as "Cyrillic script" when they actually contained Croatian Latin script. Why?</p>
+  
+  <ol style="margin-left:2rem;margin-bottom:1rem">
+    <li><strong>CLIP is weak at OCR.</strong> It was trained on image-caption pairs, not text recognition. Text in street signs is small, rotated, partially occluded — conditions where CLIP's patch-based ViT struggles.</li>
+    <li><strong>Mean-pooling destroys text.</strong> Averaging four distinct images blurs fine-grained details. One view might have a clear street sign, but averaging it with three blank walls makes the text unreadable.</li>
+  </ol>
+  
+  <p><strong>Future fix:</strong> Replace mean-pooling with cross-attention, allowing the model to focus on the single view containing readable text. Or integrate a dedicated OCR model (Tesseract, PaddleOCR) as a separate module.</p>
+  
+  <h4>Data Size as Primary Bottleneck</h4>
+  <p>Our clearest result: <strong>more data > better hyperparameters</strong>. Doubling the dataset from 2,496 to 5,042 images nearly doubled test accuracy (10.9% → 21.4%). The full 8,000-location dataset pushed it to 33.2%.</p>
+  
+  <p>The original ciglenecki competition used 16,000+ locations. PIGEON trained on 4.7M images. Our 8,000 is still data-starved. Scaling to OpenStreetView-5M (4.7M global images) would likely push CLIP classification accuracy above 50%.</p>
+  
+  <h3>Future Work</h3>
+  <ul style="margin-left:2rem">
+    <li><strong>Scale the dataset:</strong> Download 20,000+ Croatia locations via Google Street View API. Extend to global coverage with OpenStreetView-5M or MSLS datasets.</li>
+    <li><strong>Replace mean-pooling with attention:</strong> Use a Transformer encoder to aggregate the 4 views, allowing the model to attend to the most informative view (e.g., the one with a readable street sign) rather than averaging blindly.</li>
+    <li><strong>Integrate dedicated OCR:</strong> Use Tesseract or EasyOCR to extract text from signs, then verify semantic meaning with CLIP ("Is this Croatian Latin or Cyrillic?").</li>
+    <li><strong>Fine-tune CLIP selectively:</strong> Unfreeze only the last 4 transformer layers instead of the entire backbone. This balances semantic knowledge retention with task-specific adaptation.</li>
+    <li><strong>Multi-country evaluation:</strong> Within Croatia, climate and plate colors are near-constants — they can't discriminate between locations. Testing on a multi-country dataset (e.g., Croatia vs Italy vs Slovenia) would better demonstrate the value of cue-based reasoning.</li>
+    <li><strong>Multimodal LLM integration:</strong> Use GPT-4V or LLaVA to generate free-form chain-of-thought reasoning ("I see Austro-Hungarian architecture, yellow license plates, and Mediterranean vegetation — this is likely coastal Croatia near Rijeka") before coordinate prediction.</li>
+  </ul>
+</section>
+
+<!-- 7. REFERENCES -->
+<section id="references">
+  <h2><span class="section-number">7.</span> References</h2>
+  <ol style="margin-left:2rem;line-height:2">
+    <li>Fayez Navid Anwar. <em>GeorAIn: Demystifying GeoGuessr.</em> Stanford University CS231N Final Project, 2025.</li>
+    <li>Guillaume Astruc et al. <em>OpenStreetView-5M: The many roads to global visual geolocation.</em> In CVPR, 2024.</li>
+    <li>Alexey Dosovitskiy et al. <em>An image is worth 16×16 words: Transformers for image recognition at scale.</em> In ICLR, 2021.</li>
+    <li>Lukas Haas, Michal Skreta, Silas Alberti, and Chelsea Finn. <em>PIGEON: Predicting image geolocations.</em> 2024.</li>
+    <li>Alec Radford et al. <em>Learning transferable visual models from natural language supervision.</em> In ICML, 2021.</li>
+    <li>Nam N. Vo and James Hays. <em>Revisiting IM2GPS in the deep learning era.</em> In ICCV, 2017.</li>
+    <li>Tobias Weyand, Ilya Kostrikov, and James Philbin. <em>PlaNet: Photo geolocation with convolutional neural networks.</em> In CVPR, 2016.</li>
+  </ol>
+</section>
+
+<!-- 8. LINKS -->
+<section id="links">
+  <h2><span class="section-number">8.</span> Links</h2>
+  <ul style="margin-left:2rem;line-height:2;font-size:1.05rem">
+    <li><strong>GitHub Repository:</strong> <a href="https://github.com/khyathi-vag/geoguessr-bot" target="_blank">https://github.com/khyathi-vag/geoguessr-bot</a></li>
+    <li><strong>Course Website:</strong> <a href="https://pages.cs.wisc.edu/~mohitg/courses/CS766/" target="_blank">CS 766 Computer Vision (Spring 2026)</a></li>
+    <li><strong>Baseline Code (Adapted):</strong> <a href="https://github.com/ciglenecki/ml-competition-cv-geoguessr" target="_blank">ciglenecki/ml-competition-cv-geoguessr</a></li>
+    <li><strong>Google Street View API:</strong> <a href="https://developers.google.com/maps/documentation/streetview/overview" target="_blank">Documentation</a></li>
+  </ul>
+</section>
+
+</div>
+
+</body>
+</html>
