@@ -193,7 +193,7 @@ tr.highlight { background: #fff8e8; }
   <div class="course-tag">CS 766 · Computer Vision · University of Wisconsin-Madison · Spring 2026</div>
   <h1>Reason-Guessr: Bridging the Gap Between Pixel Classification and Geographic Reasoning</h1>
   <p class="subtitle">
-    A geolocation system that extracts interpretable geographic cues — license plates, climate, vegetation, architecture — and fuses them with CLIP visual features to predict where a street-level image was taken in Croatia.
+    A geolocation system that extracts interpretable geographic cues (license plates, climate, vegetation, architecture) and fuses them with CLIP visual features to predict where a street-level image was taken in Croatia.
   </p>
   <div class="authors">
     <span>Khyathi Vagolu</span> · 
@@ -236,11 +236,11 @@ tr.highlight { background: #fff8e8; }
   </ul>
   
   <h3>The Black-Box Problem</h3>
-  <p>Traditional models treat this as a classification problem — dividing the world into thousands of grid cells and training a CNN to predict the right cell. While effective at coarse localization, this is fundamentally a black box. When the model is wrong, there's no explanation. No reasoning chain. No way to improve without more data.</p>
+  <p>The traditional approach to image-based geolocation is to train a CNN (convolutional neural network) as a large-scale classifier: the world is divided into thousands of geographic grid cells, and the CNN learns to predict which cell an image belongs to. Systems like PlaNet and IM2GPS follow this paradigm and achieve coarse localization, but remain fundamentally black boxes. When the model is wrong, there is no explanation, no reasoning chain, and no way to improve without more labeled data.</p>
   
   <div class="figure">
     <img src="images/image7.png" alt="Black-box problem">
-    <div class="figure-caption">Figure 1: The black-box problem — CNN outputs grid cell with no explanation</div>
+    <div class="figure-caption">Figure 1: The black-box problem: CNN outputs a grid cell prediction with no explanation</div>
   </div>
   
   <table style="margin: 2rem 0;">
@@ -277,7 +277,13 @@ tr.highlight { background: #fff8e8; }
   </table>
   
   <h3>Our Solution: Reason-Guessr</h3>
-  <p>We ask: can we teach a model to reason the same way humans do? This project builds <strong>Reason-Guessr</strong>: a system that bridges pixel classification and geographic reasoning by extracting interpretable cues zero-shot using CLIP's image-text alignment, then fusing them with visual embeddings to predict latitude/longitude coordinates for street-level imagery in Croatia.</p>
+  <p>We ask: can we teach a model to reason the same way humans do? Rather than adopting a single approach, this project systematically explores multiple methods that each attempt to add more context and interpretability to this black-box problem. Our methodology follows a three-step progression:</p>
+  <ol style="margin-left:2rem;margin-bottom:1rem">
+    <li><strong>Step 1 - Replicate the CNN Baseline:</strong> We reproduce the ResNeXt-101 classification pipeline on our self-collected dataset, understand where and why it fails (overfitting, memorization), and establish performance bounds.</li>
+    <li><strong>Step 2 - Adapt a CLIP-ViT Backbone:</strong> We replace the CNN with a CLIP ViT-B/32 encoder pretrained on 400M image-text pairs. CLIP's geographic priors reduce overfitting and improve generalization without requiring more labeled data.</li>
+    <li><strong>Step 3 - Reasoning-Enhanced CLIP (Reason-Guessr):</strong> We add a zero-shot geographic cue extraction layer on top of CLIP, probing for interpretable signals (climate zone, license plate type, vegetation, architecture) and fusing them with visual embeddings for direct coordinate regression.</li>
+  </ol>
+  <p>The result is <strong>Reason-Guessr</strong>: a system that bridges pixel classification and geographic reasoning, combining the semantic knowledge of vision-language models with structured, human-interpretable cues.</p>
   
   <h3>Why This Matters</h3>
   <p>Image-based geolocation has significant real-world applications:</p>
@@ -288,7 +294,7 @@ tr.highlight { background: #fff8e8; }
     <li><strong>Autonomous Systems:</strong> Visual localization for drones, autonomous vehicles, and embodied AI agents</li>
   </ul>
   
-  <p>Beyond applications, IBG represents a shift from pure pixel classification toward structured visual reasoning. Our approach demonstrates that explicit geographic reasoning — extracting cues like climate zones, license plate colors, and architectural styles — can be integrated into end-to-end prediction pipelines, improving both accuracy and interpretability.</p>
+  <p>Beyond applications, IBG represents a shift from pure pixel classification toward structured visual reasoning. Our approach demonstrates that explicit geographic reasoning (extracting cues like climate zones, license plate colors, and architectural styles) can be integrated into end-to-end prediction pipelines, improving both accuracy and interpretability.</p>
 </section>
 
 <!-- 2. RELATED WORK -->
@@ -299,20 +305,28 @@ tr.highlight { background: #fff8e8; }
   <p><strong>PlaNet</strong> [Weyand et al., 2016] was the first to tackle this at scale, dividing Earth into thousands of S2 grid cells and training a CNN to classify images. It achieved coarse localization but struggled with fine-grained precision. <strong>IM2GPS</strong> [Vo & Hays, 2017] improved with better CNN backbones (ResNet) and larger datasets, but maintained the same black-box classification paradigm.</p>
   
   <h3>Vision Transformers</h3>
-  <p><strong>ViT</strong> [Dosovitskiy et al., 2021] brought self-attention to computer vision, enabling better global context modeling. When applied to geolocation, ViTs improved accuracy but still functioned as improved classifiers rather than reasoning systems — no interpretable intermediate outputs.</p>
+  <p><strong>ViT</strong> [Dosovitskiy et al., 2021] brought self-attention to computer vision, enabling better global context modeling. When applied to geolocation, ViTs improved accuracy but still functioned as improved classifiers rather than reasoning systems, with no interpretable intermediate outputs.</p>
   
   <h3>Vision-Language Models</h3>
-  <p><strong>CLIP</strong> [Radford et al., 2021] changed the landscape by learning joint image-text embeddings on 400M image-caption pairs from the web. Because CLIP was trained on natural language descriptions of scenes, it internalized rich geographic priors — recognizing architectural styles, vegetation types, and cultural markers without explicit geographic supervision.</p>
+  <p><strong>CLIP</strong> [Radford et al., 2021] changed the landscape by learning joint image-text embeddings on 400M image-caption pairs from the web. Because CLIP was trained on natural language descriptions of scenes, it internalized rich geographic priors, recognizing architectural styles, vegetation types, and cultural markers without explicit geographic supervision.</p>
   
   <h3>Recent CLIP-Based Work</h3>
-  <p><strong>GeorAIn</strong> [Anwar, 2025] showed that a frozen CLIP ViT-B/16 with just a two-layer MLP head achieves 489km mean error and 103km median error across 23 cities, trained on only 113K images — demonstrating that CLIP's pretrained features carry substantial geographic information without massive task-specific datasets.</p>
-  
-  <p><strong>PIGEON</strong> [Haas et al., 2024] uses a coarse-to-fine pipeline with contrastive pretraining on millions of geotagged images, then refines predictions with a retrieval module. It achieves state-of-the-art results but requires massive compute and data — training on 4.7M images across 100 epochs.</p>
-  
+  <p><strong>GeorAIn</strong> [Anwar, 2025] showed that a frozen CLIP ViT-B/16 with just a two-layer MLP head achieves 489km mean error and 103km median error across 23 cities, trained on only 113K images, demonstrating that CLIP's pretrained features carry substantial geographic information without massive task-specific datasets.</p>
+
+  <p><strong>PIGEON</strong> [Haas et al., 2024] uses a coarse-to-fine pipeline with contrastive pretraining on millions of geotagged images, then refines predictions with a retrieval module. It uses a CLIP backbone as its foundation and achieves state-of-the-art results (44.4 km median error globally), but requires massive compute and data, training on 4.7M images across 100 epochs.</p>
+
   <p>The <strong>OpenStreetView-5M</strong> benchmark [Astruc et al., 2024] confirmed that classification-augmented methods consistently outperform pure coordinate regression, which motivated our hybrid approach combining classification and explicit cue extraction.</p>
-  
+
+  <h3>Why These Constraints Shaped Our Approach</h3>
+  <p>State-of-the-art methods like PIGEON require 4.7 million geotagged images and substantial multi-GPU compute infrastructure. With a self-collected dataset of 8,000 locations and a Google Colab Pro GPU budget, replicating such pipelines is infeasible. Our constraints shaped our design choices directly:</p>
+  <ul style="margin-left:2rem;margin-bottom:1rem">
+    <li><strong>Dataset size (~8,000 locations):</strong> Too small for end-to-end fine-tuning of large backbones without severe overfitting. This pushed us toward frozen or partially-frozen CLIP encoders as built-in regularizers.</li>
+    <li><strong>Compute budget (Colab A100):</strong> Rules out training from scratch or multi-stage retrieval pipelines. We needed efficient inference, which CLIP's zero-shot cue extraction provides at roughly 22 locations per second.</li>
+    <li><strong>Single-country scope:</strong> Croatia provides a geographically coherent benchmark with validated open-source competition code to adapt, rather than building a pipeline from scratch.</li>
+  </ul>
+
   <h3>Our Contribution</h3>
-  <p>While prior work either (1) treats geolocation as pure classification with no interpretability, or (2) uses VLMs to extract cues but doesn't integrate them into predictions, we bridge that gap: <strong>zero-shot cue extraction fused end-to-end with CLIP visual embeddings for direct coordinate regression</strong>, combining the semantic reasoning of VLMs with the prediction accuracy of learned models.</p>
+  <p>While prior work either (1) treats geolocation as pure classification with no interpretability, or (2) uses VLMs to extract cues but does not integrate them into predictions, we bridge that gap: <strong>zero-shot cue extraction fused end-to-end with CLIP visual embeddings for direct coordinate regression</strong>, combining the semantic reasoning of VLMs with the prediction accuracy of learned models.</p>
 </section>
 
 <!-- 3. DATASET -->
@@ -322,11 +336,11 @@ tr.highlight { background: #fff8e8; }
   <h3>Google Street View Collection</h3>
   <p>We built a Croatia-focused dataset using the <strong>Google Street View Static API</strong>. We sampled 8,000 random coordinates within Croatia's bounding box (latitude 42.4–46.5°N, longitude 13.5–19.4°E), verified Street View coverage via the metadata API, and downloaded four cardinal-direction images (0°, 90°, 180°, 270°) per valid location at 640×640 resolution.</p>
   
-  <p>This yielded <strong>32,000 images</strong> across 8,000 unique locations, partitioned into <strong>31 geographic grid cells at 0.7° spacing</strong>. The dataset was split 80/10/10 into train (6,400 locations), validation (800), and test (800).</p>
+  <p>This yielded <strong>32,000 images</strong> across 8,000 unique locations, partitioned into <strong>31 geographic classes</strong> using Voronoi tessellation at 0.5-degree spacing. The dataset was split 90/5/5 into train (~7,200 locations), validation (~400), and test (~400). After filtering out the 104 UUID folders missing one or more cardinal-direction images, the held-out test set contains 257 locations.</p>
   
   <div class="figure">
     <img src="images/image14.png" alt="Croatia grid map">
-    <div class="figure-caption">Figure 2: Croatia partitioned into 31 geographic grid cells (0.7° spacing)</div>
+    <div class="figure-caption">Figure 2: Croatia partitioned into 31 geographic classes using Voronoi tessellation (0.5-degree spacing)</div>
   </div>
   
   <div class="figure">
@@ -335,7 +349,7 @@ tr.highlight { background: #fff8e8; }
   </div>
   
   <h3>Why Four Views?</h3>
-  <p>Human GeoGuessr players don't make judgments from a single fixed viewpoint — they "look around" to gather contextual clues. The four cardinal views replicate this: one direction might show a license plate, another might capture a road sign with text, another might reveal architectural details. Aggregating these views via mean-pooling gives the model a richer spatial understanding of each location.</p>
+  <p>Human GeoGuessr players don't make judgments from a single fixed viewpoint; they "look around" to gather contextual clues. The four cardinal views replicate this: one direction might show a license plate, another might capture a road sign with text, another might reveal architectural details. Aggregating these views via mean-pooling gives the model a richer spatial understanding of each location.</p>
   
   <h3>Dataset Statistics</h3>
   <table>
@@ -360,7 +374,7 @@ tr.highlight { background: #fff8e8; }
       </tr>
       <tr>
         <td>Train / Val / Test</td>
-        <td class="metric-val">6,400 / 800 / 800</td>
+        <td class="metric-val">~7,200 / ~400 / 257 held-out</td>
       </tr>
       <tr>
         <td>Geographic Distribution</td>
@@ -383,33 +397,39 @@ tr.highlight { background: #fff8e8; }
   <p><strong>Training:</strong> Cross-entropy loss, Adam optimizer (lr=1e-4), OneCycleLR scheduler, 15 epochs, batch size 16. Backbone frozen for first 3 epochs, then unfrozen for fine-tuning.</p>
   
   <h3>Phase 2: CLIP Classification</h3>
-  <p>We replace the ResNeXt backbone with a <strong>frozen CLIP ViT-B/32</strong> encoder. Because CLIP was trained on 400M image-text pairs scraped from the internet, it has internalized rich geographic priors — associating visual patterns with semantic concepts like "Mediterranean architecture" or "Alpine vegetation" — without any explicit geolocation supervision.</p>
-  
-  <p><strong>Architecture:</strong> Same 4-view setup. Each image (640×640) is resized to 224×224 and passed through the frozen CLIP ViT-B/32 visual encoder to extract a 512-d [CLS] token embedding. The four embeddings are concatenated (4 × 512 = 2048-d), then passed through a <strong>lightweight linear classifier</strong> (95K parameters) to predict one of 31 grid classes.</p>
-  
-  <p><strong>Why frozen?</strong> Fine-tuning CLIP's 151M parameter backbone on 6,400 training examples would cause severe overfitting. By freezing the backbone and training only the linear head, we leverage CLIP's semantic knowledge while avoiding memorization. This acts as a powerful regularizer.</p>
+  <p>We replace the ResNeXt backbone with a <strong>CLIP ViT-B/32</strong> encoder. Because CLIP was trained on 400M image-text pairs scraped from the internet, it has internalized rich geographic priors, associating visual patterns with semantic concepts like "Mediterranean architecture" or "Alpine vegetation", without any explicit geolocation supervision.</p>
+
+  <p><strong>Architecture:</strong> Same 4-view setup. Each image is resized to 224x224 and passed through CLIP ViT-B/32's vision encoder, which divides the image into 7x7 = 49 patches and processes them through 12 transformer layers with 768-dimensional embeddings. The pooler_output [CLS] token is a 768-d embedding per image. The four embeddings are concatenated (4 x 768 = 3,072-d), then passed through a linear classification head (trainable from init, ~95K parameters) to predict one of 31 geographic classes.</p>
+
+  <p><strong>Training strategy:</strong> The backbone is fully frozen for the first 2 epochs (training only the linear head), then the last 4 transformer layers are unfrozen for fine-tuning. This staged approach balances retaining CLIP's pretrained geographic knowledge with task-specific adaptation. CLIP ViT-B/32 has ~87.5M parameters, comparable to ResNeXt-101's 88M, but its geographic pretraining rather than ImageNet pretraining is what drives the accuracy gain. Training ran for 103 epochs on a Colab A100 (fp16 mixed precision) in approximately 2 hours, with the best checkpoint selected by validation haversine distance.</p>
   
   <h3>Phase 3: Reason-Guessr (Zero-Shot Cue Fusion)</h3>
-  <p>The full system extracts interpretable geographic cues <em>zero-shot</em> using CLIP's image-text alignment, then fuses them with the visual embedding to regress lat/lng directly — bypassing grid discretization entirely.</p>
+  <p>The full system extracts interpretable geographic cues <em>zero-shot</em> using CLIP's image-text alignment, then fuses them with the visual embedding to regress lat/lng directly, bypassing grid discretization entirely.</p>
   
   <p><strong>Step 1: Zero-Shot Cue Extraction</strong></p>
-  <p>We define 6 geographic categories that mimic human reasoning:</p>
-  <ul style="margin-left:2rem;margin-bottom:1rem">
-    <li><strong>Climate (6 prompts):</strong> "Mediterranean climate", "Continental climate", "Alpine climate", "Coastal Adriatic climate", "Pannonian Plain climate", "Sub-Mediterranean climate"</li>
-    <li><strong>License Plates (9 prompts):</strong> "EU yellow license plates", "EU white license plates", "Croatian white plates", "Balkan-style plates", etc.</li>
-    <li><strong>Vegetation (10 prompts):</strong> "Pine forest", "Olive groves", "Mediterranean scrubland", "Deciduous forest", "Cypress trees", "Agricultural fields", etc.</li>
-    <li><strong>Architecture (10 prompts):</strong> "Austro-Hungarian architecture", "Mediterranean coastal houses", "Socialist-era apartment blocks", "Rural Balkan houses", "Venetian-influenced buildings", etc.</li>
-    <li><strong>Road Infrastructure (8 prompts):</strong> "EU-style highway", "Balkan rural road", "Coastal scenic route", "Mountain pass", "Paved village road", etc.</li>
-    <li><strong>Language (6 prompts):</strong> "Croatian Latin script signs", "Italian language signs", "German language signs", "Bilingual Croatian-Italian signs", "Cyrillic script", "English tourist signs"</li>
-  </ul>
-  
-  <p>For each image, we:</p>
+  <p>We define 6 geographic cue categories, each with 3-4 class labels. For each class, 2-4 natural-language prompt templates are authored and averaged (L2-normalized) into a single class embedding:</p>
+  <table style="margin:1rem 0;font-size:0.9rem">
+    <thead>
+      <tr><th>Cue Category</th><th>Classes</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>License Plate</td><td>white EU, yellow UK, white US</td></tr>
+      <tr><td>Climate Zone</td><td>Mediterranean, continental, tropical, arid</td></tr>
+      <tr><td>Language Script</td><td>Latin, Cyrillic, Arabic, Asian</td></tr>
+      <tr><td>Road Infrastructure</td><td>European, North American, developing</td></tr>
+      <tr><td>Architecture Style</td><td>Mediterranean, North European, East European, modern</td></tr>
+      <tr><td>Vegetation Type</td><td>coniferous, deciduous, Mediterranean, tropical</td></tr>
+    </tbody>
+  </table>
+
+  <p>For each location, we:</p>
   <ol style="margin-left:2rem;margin-bottom:1rem">
-    <li>Encode all 49 text prompts with CLIP's text encoder → 49 × 512-d text embeddings</li>
-    <li>Compute cosine similarity between the image embedding (512-d) and each text embedding</li>
-    <li>For each category, select the prompt with highest similarity → 6 cues</li>
-    <li>One-hot encode the selected cues → 49-d sparse vector</li>
+    <li>Encode each of the 4 cardinal-direction images through CLIP ViT-B/32 and mean-pool into a single 512-d location embedding</li>
+    <li>Compute cosine similarity between the location embedding and each class embedding</li>
+    <li>For each category, take the argmax prediction; raw similarity scores give per-class confidence</li>
+    <li>One-hot encode the 6 predictions → 22-d sparse vector (3+4+4+3+4+4 = 22 dimensions)</li>
   </ol>
+  <p>The full pipeline processed all 8,000 Croatia locations (32,000 images) on a Colab T4 GPU at ~22 locations/second, completing in approximately 6 minutes.</p>
   
   <div class="figure">
     <img src="images/image15.png" alt="Cue extraction example">
@@ -427,7 +447,7 @@ tr.highlight { background: #fff8e8; }
   </ul>
   
   <p><strong>Step 2: Fusion MLP</strong></p>
-  <p>We concatenate the 49-d cue vector with the mean CLIP visual embedding (512-d averaged across 4 views) to form a 561-d feature vector. This is passed through a 2-layer MLP (561 → 256 → 2) to regress directly to (lat, lng) coordinates with MSE loss.</p>
+  <p>We concatenate the 22-d cue vector with the 512-d CLIP visual embedding (mean-pooled across 4 views) to form a 534-d feature vector. This is passed through a 2-layer MLP with ReLU activations to regress directly to (lat, lng) coordinates with MSE loss. For MLP training and evaluation the dataset is split 80/20, with 1,600 held-out test locations.</p>
   
   <div class="figure">
     <img src="images/image13.png" alt="MLP architecture">
@@ -457,13 +477,21 @@ tr.highlight { background: #fff8e8; }
   
   <p><strong>4. Code compatibility bugs:</strong></p>
   <ul style="margin-left:2rem;margin-bottom:1rem">
-    <li><code>IndentationError</code> in <code>train.py</code> line 203 — missing indent after conditional</li>
-    <li><code>KeyError: 'has_image'</code> in <code>preprocess_csv_create_rich_static.py</code> — DataFrame column didn't exist in newer pandas</li>
-    <li><code>TypeError</code> from <code>OneCycleLR(verbose=True)</code> — parameter deprecated in PyTorch 2.0</li>
-    <li><code>DeprecationWarning</code> for <code>pretrained=True</code> → migrated to <code>weights=ResNeXt101_32X8D_Weights.DEFAULT</code></li>
+    <li><code>IndentationError</code> in <code>train.py</code> line 203: missing indent after conditional</li>
+    <li><code>KeyError: 'has_image'</code> in <code>preprocess_csv_create_rich_static.py</code>: DataFrame column did not exist in newer pandas</li>
+    <li><code>TypeError</code> from <code>OneCycleLR(verbose=True)</code>: parameter deprecated in PyTorch 2.0</li>
+    <li><code>DeprecationWarning</code> for <code>pretrained=True</code>, migrated to <code>weights=ResNeXt101_32X8D_Weights.DEFAULT</code></li>
   </ul>
   
-  <p><strong>5. Colab-specific constraints:</strong> <code>num_workers=0</code> required to prevent DataLoader multiprocessing deadlocks on Colab's sandboxed environment. Dataset workflow: zip on Google Drive → copy single .zip to <code>/content/</code> → extract locally to leverage SSD speed (10× faster than Drive symlinks).</p>
+  <p><strong>5. Colab-specific constraints:</strong> <code>num_workers=0</code> required to prevent DataLoader multiprocessing deadlocks on Colab's sandboxed environment. Dataset workflow: zip on Google Drive → copy single .zip to <code>/content/</code> → extract locally to leverage SSD speed (10x faster than Drive symlinks).</p>
+
+  <p><strong>6. PyTorch 2.6 weights_only=True default:</strong> PyTorch 2.6 changed <code>torch.load</code> to use <code>weights_only=True</code> by default. Checkpoints saved by the repository contain sklearn <code>MinMaxScaler</code> and numpy array objects not in PyTorch's safe globals list. This broke both training resumption and test evaluation. <strong>Fix:</strong> monkey-patch <code>torch.load</code> at the top of <code>train.py</code> before any Lightning code runs, setting <code>weights_only=False</code> for trusted internal checkpoints. A named function (not a lambda) is required to prevent infinite recursion on Colab cell re-runs.</p>
+
+  <p><strong>7. Empty validation dataloader with drop_last=True:</strong> The repository sets <code>drop_last=True</code> by default. With small validation subsets and certain batch sizes, the val dataloader produced zero batches, causing <code>ReduceLROnPlateau</code> to crash because the monitored <code>val/loss_epoch</code> metric never logged. <strong>Fix:</strong> override <code>drop_last=False</code> specifically in the val and test dataloaders.</p>
+
+  <p><strong>8. Incorrect CLIP embedding dimension:</strong> Initial implementation assumed CLIP ViT-B/32's pooler_output was 512-dimensional (matching CLIP's projected embedding after the projection head). The raw <code>CLIPVisionModel</code> pooler_output is 768-dimensional. This caused a shape mismatch <code>(16x3072 vs 2048x27)</code> that only surfaced at the ModelSummary step. <strong>Fix:</strong> corrected CLIP_VARIANTS to use 768 for ViT-B/32; rebuilt the fc layer explicitly after super().__init__().</p>
+
+  <p><strong>9. Colab session persistence:</strong> Google Colab resets <code>/content/</code> on disconnect, losing the cloned repository and all installed packages. We implemented a startup.sh script stored on Google Drive that reinstalls packages and re-clones the repository from GitHub. CLIP weights are cached to Drive via <code>HF_HOME</code> environment variable so the 600MB download is not repeated each session.</p>
   
   <h3>Hyperparameter Tuning Journey</h3>
   <p>Finding the right training configuration required multiple iterations:</p>
@@ -505,7 +533,7 @@ tr.highlight { background: #fff8e8; }
         <td>Weight decay helped</td>
       </tr>
       <tr class="highlight">
-        <td>Larger dataset (5,042 imgs)</td>
+        <td>Larger dataset (~5,000 locations)</td>
         <td class="metric-val">1e-4</td>
         <td class="metric-val">16</td>
         <td class="metric-val">1e-3</td>
@@ -523,7 +551,7 @@ tr.highlight { background: #fff8e8; }
     </tbody>
   </table>
   
-  <p><strong>Key insight:</strong> Doubling the dataset size from 2,496 to 5,042 images nearly doubled test accuracy (10.9% → 21.4%). Going from 5,042 to 8,000 increased it further to 33.2%. <em>More data consistently outperforms hyperparameter tuning.</em></p>
+  <p><strong>Key insight:</strong> Doubling the dataset size from ~2,500 to ~5,000 locations nearly doubled test accuracy (10.9% to 21.4%). Going to 8,000 locations increased it further to 33.2%. <em>More data consistently outperforms hyperparameter tuning.</em></p>
 </section>
 
 <!-- 6. RESULTS -->
@@ -552,26 +580,34 @@ tr.highlight { background: #fff8e8; }
         <td class="metric-val bad-val">79.8pp</td>
       </tr>
       <tr class="highlight">
-        <td><strong>CLIP ViT-B/32 (frozen)</strong></td>
-        <td class="metric-val">59.0%</td>
+        <td><strong>CLIP ViT-B/32</strong></td>
+        <td class="metric-val">63.1%</td>
         <td class="metric-val">35.7%</td>
         <td class="metric-val good-val">37.5%</td>
         <td class="metric-val">91.1</td>
-        <td class="metric-val good-val">21.5pp</td>
+        <td class="metric-val good-val">25.6pp</td>
       </tr>
       <tr>
-        <td><strong>Reason-Guessr (Cue Fusion)</strong></td>
-        <td class="metric-val">—</td>
-        <td class="metric-val">—</td>
-        <td class="metric-val">—</td>
+        <td><strong>CLIP only, MLP regression</strong></td>
+        <td class="metric-val">-</td>
+        <td class="metric-val">-</td>
+        <td class="metric-val">-</td>
+        <td class="metric-val">90.6</td>
+        <td class="metric-val">-</td>
+      </tr>
+      <tr>
+        <td><strong>Reason-Guessr (CLIP + Cue Fusion)</strong></td>
+        <td class="metric-val">-</td>
+        <td class="metric-val">-</td>
+        <td class="metric-val">-</td>
         <td class="metric-val good-val">88.9</td>
-        <td class="metric-val">—</td>
+        <td class="metric-val">-</td>
       </tr>
     </tbody>
   </table>
   
   <h3>Zero-Shot Cue Accuracy</h3>
-  <p>Evaluated on all 8,000 Croatia locations with <strong>no training</strong> — pure CLIP image-text alignment:</p>
+  <p>Evaluated on all 8,000 Croatia locations with <strong>no training</strong>, using pure CLIP image-text alignment:</p>
   <div class="cue-bars">
     <div class="cue-row">
       <div class="cue-name">Climate</div>
@@ -610,26 +646,52 @@ tr.highlight { background: #fff8e8; }
   <h3>Discussion</h3>
   
   <h4>Why CNNs Overfit</h4>
-  <p>The ResNeXt-101 baseline achieved 99.4% train accuracy but only 33.2% test accuracy — a <strong>79.8 percentage point overfitting gap</strong>. With 87M parameters and only ~6,400 training examples, the model doesn't learn geographic features — it memorizes training images.</p>
-  
-  <p>Evidence: When we inspected misclassified test images, the CNN often predicted the <em>training location most visually similar to the test image</em>, rather than the geographically correct grid cell. It learned "this house texture belongs to cell #12" instead of "cell #12 covers the Istrian peninsula."</p>
-  
-  <p>CLIP's frozen backbone reduces this gap to 21.5pp by leveraging 400M pretrained images. The frozen encoder acts as a powerful regularizer — it <em>cannot</em> memorize training examples, so it's forced to rely on semantic patterns.</p>
+  <p>The ResNeXt-101 baseline achieved 99.4% train accuracy but only 33.2% test accuracy, a <strong>66-point overfitting gap</strong>. With 88M parameters and only ~7,200 training examples across 31 classes (roughly 160 examples per class), the model does not learn geographic features; it memorizes training images. ImageNet pretraining provides no geographic prior, so all geolocation signal must be learned from scratch from the training set alone.</p>
+
+  <p>Evidence: when we inspected misclassified test images, the CNN often predicted the <em>training location most visually similar to the test image</em>, rather than the geographically correct grid cell. It learned "this house texture belongs to cell 12" instead of "cell 12 covers the Istrian peninsula."</p>
+
+  <p>CLIP ViT-B/32 reduces the train/test gap to 25.6pp (63.1% vs 37.5%), less than half the baseline's gap. Its geographic pretraining on 400M image-text pairs means geographic signal is already encoded in the features; the linear head only needs to map that signal to the 31 Croatian classes. CLIP also improves test accuracy by 4.3 percentage points (+1 in 23 correctly-classified test images) and reduces test loss by 21.8% (2.062 vs 2.638). Lower test loss means CLIP's probability distributions are better calibrated: when wrong, it assigns more probability mass to geographically adjacent classes rather than arbitrary distant ones.</p>
+
+  <h4>The Haversine Metric Paradox</h4>
+  <p>The scaled haversine numbers in the table above appear to favor ResNeXt-101 (0.01305 vs 0.01494 for CLIP). This result must be interpreted with caution. These values are in normalized coordinate units after MinMaxScaler transformation, not kilometers. A difference of 0.00189 in normalized units corresponds to roughly 0.9-1.1 km in real distance. More critically, the baseline's low haversine score was achieved while severely overfit: its 66-point train/test accuracy gap indicates it partially memorized training locations, and test examples that overlap geographically with memorized training images will appear close in haversine distance through memorization rather than understanding. CLIP's smaller overfitting gap reflects genuine generalization.</p>
   
   <h4>Why Language Cue Failed</h4>
-  <p>CLIP achieved only 2.3% accuracy on language/OCR cues — the worst by far. 96% of locations were predicted as "Cyrillic script" when they actually contained Croatian Latin script. Why?</p>
-  
+  <p>CLIP achieved only 2.3% accuracy on language/OCR cues, the worst by far. 96% of locations were predicted as "Cyrillic script" when they actually contained Croatian Latin script. Two causes:</p>
+
   <ol style="margin-left:2rem;margin-bottom:1rem">
-    <li><strong>CLIP is weak at OCR.</strong> It was trained on image-caption pairs, not text recognition. Text in street signs is small, rotated, partially occluded — conditions where CLIP's patch-based ViT struggles.</li>
+    <li><strong>CLIP is weak at OCR.</strong> It was trained on image-caption pairs, not text recognition. Text in street signs is small, rotated, partially occluded, conditions where CLIP's patch-based ViT struggles.</li>
     <li><strong>Mean-pooling destroys text.</strong> Averaging four distinct images blurs fine-grained details. One view might have a clear street sign, but averaging it with three blank walls makes the text unreadable.</li>
   </ol>
-  
+
   <p><strong>Future fix:</strong> Replace mean-pooling with cross-attention, allowing the model to focus on the single view containing readable text. Or integrate a dedicated OCR model (Tesseract, PaddleOCR) as a separate module.</p>
+
+  <h4>Key Finding: Symmetric Prompt Collapse</h4>
+  <p>While debugging the two failed cues (road infrastructure and language script), we discovered a systematic failure in CLIP's text encoder. When we measured cosine similarity between opposing class embeddings, the results were alarming:</p>
+
+  <table style="font-size:0.9rem;margin:1rem 0">
+    <thead>
+      <tr><th>Prompt Pair</th><th>Cosine Similarity</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>"driving on the left" vs "driving on the right"</td><td class="metric-val bad-val">0.99</td></tr>
+      <tr><td>"latin script" vs "cyrillic script"</td><td class="metric-val bad-val">0.94</td></tr>
+      <tr><td>"european road" vs "north-american road"</td><td class="metric-val bad-val">0.91</td></tr>
+    </tbody>
+  </table>
+
+  <p>Symmetric templates (e.g., "...on the left" vs "...on the right") share 90%+ of their tokens. The distinguishing token ("left" vs "right") contributes only a small fraction of the final sentence embedding. CLIP's text encoder collapses opposing classes into nearly-identical vectors, making classification a coin flip biased by embedding geometry rather than visual content.</p>
+
+  <p><strong>Fix: Differential Prompts.</strong> Replacing symmetric templates with prompts that describe visually distinct features reduces the collapse. For example:</p>
+  <ul style="margin-left:2rem;margin-bottom:1rem">
+    <li><strong>Before:</strong> "a photo of cars driving on the LEFT side of the road"</li>
+    <li><strong>After:</strong> "a car with the steering wheel on the RIGHT, driving in the left lane"</li>
+  </ul>
+  <p>The differential prompt encodes a visually distinguishable feature (steering wheel position) rather than a spatial label, reducing pairwise text embedding similarity from 0.99 to 0.75. This finding generalizes beyond geolocation to any CLIP-based categorical classifier where class labels are spatially or directionally symmetric.</p>
   
   <h4>Data Size as Primary Bottleneck</h4>
-  <p>Our clearest result: <strong>more data > better hyperparameters</strong>. Doubling the dataset from 2,496 to 5,042 images nearly doubled test accuracy (10.9% → 21.4%). The full 8,000-location dataset pushed it to 33.2%.</p>
-  
-  <p>The original ciglenecki competition used 16,000+ locations. PIGEON trained on 4.7M images. Our 8,000 is still data-starved. Scaling to OpenStreetView-5M (4.7M global images) would likely push CLIP classification accuracy above 50%.</p>
+  <p>Our clearest result: <strong>more data > better hyperparameters</strong>. Doubling the dataset from ~2,500 to ~5,000 locations nearly doubled test accuracy (10.9% to 21.4%). The full 8,000-location dataset pushed it to 33.2%.</p>
+
+  <p>The original ciglenecki competition used 16,000+ locations. PIGEON trained on 4.7M images. Our 8,000 is still data-starved (~160 examples per class), which explains why CLIP's geographic features cannot yet be fully exploited. Scaling to OpenStreetView-5M (4.7M global images) would likely push CLIP classification accuracy well above 50%.</p>
   
   <h3>Future Work</h3>
   <ul style="margin-left:2rem">
@@ -637,8 +699,8 @@ tr.highlight { background: #fff8e8; }
     <li><strong>Replace mean-pooling with attention:</strong> Use a Transformer encoder to aggregate the 4 views, allowing the model to attend to the most informative view (e.g., the one with a readable street sign) rather than averaging blindly.</li>
     <li><strong>Integrate dedicated OCR:</strong> Use Tesseract or EasyOCR to extract text from signs, then verify semantic meaning with CLIP ("Is this Croatian Latin or Cyrillic?").</li>
     <li><strong>Fine-tune CLIP selectively:</strong> Unfreeze only the last 4 transformer layers instead of the entire backbone. This balances semantic knowledge retention with task-specific adaptation.</li>
-    <li><strong>Multi-country evaluation:</strong> Within Croatia, climate and plate colors are near-constants — they can't discriminate between locations. Testing on a multi-country dataset (e.g., Croatia vs Italy vs Slovenia) would better demonstrate the value of cue-based reasoning.</li>
-    <li><strong>Multimodal LLM integration:</strong> Use GPT-4V or LLaVA to generate free-form chain-of-thought reasoning ("I see Austro-Hungarian architecture, yellow license plates, and Mediterranean vegetation — this is likely coastal Croatia near Rijeka") before coordinate prediction.</li>
+    <li><strong>Multi-country evaluation:</strong> Within Croatia, climate and plate colors are near-constants and cannot discriminate between locations. Testing on a multi-country dataset (e.g., Croatia vs Italy vs Slovenia) would better demonstrate the value of cue-based reasoning, where cues like license plate color and language script vary meaningfully across borders.</li>
+    <li><strong>Multimodal LLM integration:</strong> Use GPT-4V or LLaVA to generate free-form chain-of-thought reasoning ("I see Austro-Hungarian architecture, yellow license plates, and Mediterranean vegetation; this is likely coastal Croatia near Rijeka") before coordinate prediction.</li>
   </ul>
 </section>
 
